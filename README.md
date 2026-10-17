@@ -57,6 +57,8 @@ Before spending the larger generation budget, a cheap model call decides whether
 
 AI limits (uploads per family per day, uploads per day overall, file size, extracted tokens, output tokens) have **hard ceilings in code**. Environment variables and the admin settings page can tune them, but never above the ceiling. Token usage and estimated cost are recorded per upload and shown on the admin dashboard.
 
+→ Full breakdown of prices, per-upload cost and daily limits: **[AI cost](AI-COSTS.md)**
+
 ### Difficulty that actually changes
 
 Each child has an English level (automatic from school grade, or Beginner → Advanced). The level sets the number of words and questions, the question type (direct recall vs. inference), maximum sentence length and spelling word length in the generation prompt. The model's output is then **clamped to the level in code**, so a verbose model can't exceed it.
