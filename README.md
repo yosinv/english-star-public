@@ -44,6 +44,7 @@ photo / PDF
 Before spending the larger generation budget, a cheap model call decides whether an upload is real learning material.
 
 - **Asymmetric thresholds:** auto-approve needs ≥ 80% confidence, auto-reject needs ≥ 95%. Anything in between goes to an admin queue, so a wrong rejection is rarer than a wrong approval.
+- **A fixed rule after the model:** if the judge's own labels say an upload is not school material (a photo of a room, a ceiling, a screen), code rejects it even when the model hedged with "review". Admins must preview a photo before approving it, and any approval can be undone, which also corrects the judge's memory.
 - **It learns from corrections:** when the admin overrides or confirms a decision, the case is stored as trusted memory and fed back into the judge's prompt as examples. The latest correction for an upload replaces earlier ones.
 - **Untrusted input is treated as data:** text extracted from a photo is wrapped and marked as untrusted, and a judge that flags prompt injection is forced to "review" regardless of its confidence.
 
@@ -68,6 +69,24 @@ Each child has an English level (automatic from school grade, or Beginner → Ad
   <img src="assets/child-home.png" width="260" alt="Child home showing grade, English level and interest-based missions">
 </p>
 <sub>Parents set each child's English level; the child's home shows it and builds missions from their interests.</sub>
+
+## One definition per number (Apache Ossie)
+
+Every number the app reports, from XP to AI cost per lesson, is defined once in an **[Apache Ossie](https://github.com/apache/ossie) semantic model**. Ossie is the vendor-neutral standard (formerly Open Semantic Interchange) for defining datasets, joins and metrics so that BI tools and AI agents compute them the same way.
+
+- **[`english_star.semantic_model.yaml`](semantic-model/english_star.semantic_model.yaml)**: 8 datasets, 9 relationships, 24 metrics. Each comes with `ai_context` (meaning, synonyms in English and Hebrew, and a privacy instruction: aggregates or the asking parent's own child only, never names).
+- **[`metrics.yaml`](semantic-model/metrics.yaml)**: the short view, generated from the model. One line of meaning, synonyms and formula per number.
+- **Verified three ways:**
+  - It passes Apache's own validator (schema, references, metric scoping, SQL parsing).
+  - **[`check_against_db.py`](semantic-model/check_against_db.py)** runs every metric against SQLite built from the app's real migrations and compares 14 results with hand-computed values.
+  - It fails if one synonym points to two different numbers.
+
+Writing the checks caught real mistakes before anything shipped:
+- Two rates that came out as 0 because SQLite divides whole numbers without a fraction.
+- "accuracy" used as a synonym for two different metrics.
+- A cross-dataset XP total that double-counted under a naive join. The checker now evaluates each measure over its own rows, as Ossie's measure semantics require.
+
+<sub>Structure only, no data. Children's names, login IDs, file keys and photo hashes are deliberately not in the model. The spec is pre-1.0 (`0.2.0.dev0`), so the model will follow its changes.</sub>
 
 ## Privacy and security
 

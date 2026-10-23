@@ -1,0 +1,870 @@
+version: 0.2.0.dev0
+name: English Star learning model
+description: Semantic model of English Star, a family English-learning app for children (Cloudflare Workers + D1).
+  It defines once what learning progress, lesson completion and AI upload cost mean, so dashboards and AI agents
+  answer from the same definitions. Contains structure only, never data.
+ai_context:
+  instructions: This data describes children. Answer only with aggregates or with the asking parent's own child.
+    Never return names, never join across families, and never expose fields not declared here. XP, gems and streak
+    on CHILD are running totals; per-period progress comes from ACTIVITY_ATTEMPT and ASSIGNMENT_COMPLETION.
+  synonyms:
+  - English Star
+  - kids English app
+  examples:
+  - How many lessons did my child finish this week?
+  - Which skills need review?
+  - What does one AI-generated lesson cost?
+datasets:
+- name: FAMILY
+  source: english_star.main.families
+  primary_key:
+  - id
+  description: One signed-in parent account. Children belong to exactly one family.
+  fields:
+  - name: id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: id
+    datatype: String
+    description: Family identifier.
+  - name: is_frozen
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: is_frozen
+    datatype: Boolean
+    description: 1 when an administrator has paused the account.
+  - name: created_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: created_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the family signed up.
+  metrics:
+  - name: families
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COUNT(id)
+    description: Number of family accounts.
+    datatype: Integer
+    ai_context:
+      synonyms:
+      - accounts
+      - parents
+      - households
+- name: CHILD
+  source: english_star.main.children
+  primary_key:
+  - id
+  description: A child learner profile inside a family. Children do not have their own logins.
+  ai_context:
+    instructions: A child's name is personal data and is intentionally not part of this model.
+    synonyms:
+    - learner
+    - kid
+    - student
+    - ילד
+    - לומד
+  fields:
+  - name: id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: id
+    datatype: String
+    description: Child identifier.
+  - name: family_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: family_id
+    datatype: String
+    description: Owning family.
+  - name: level
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: level
+    datatype: Integer
+    description: 'English level: 1 = automatic from the school grade, 2-5 = Beginner, Basic, Intermediate, Advanced
+      chosen by the parent.'
+    ai_context:
+      synonyms:
+      - English level
+      - difficulty
+      - רמה
+  - name: grade_band
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: grade_band
+    datatype: String
+    description: School grade as entered by the parent.
+    ai_context:
+      synonyms:
+      - grade
+      - class
+      - כיתה
+  - name: instruction_language
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: instruction_language
+    datatype: String
+    description: 'Language of instructions: he or en.'
+  - name: xp
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: xp
+    datatype: Integer
+    description: Running total of experience points.
+    ai_context:
+      synonyms:
+      - points
+      - score total
+      - stars
+      - נקודות
+  - name: gems
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: gems
+    datatype: Integer
+    description: Running total of gems.
+  - name: streak
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: streak
+    datatype: Integer
+    description: Consecutive learning days.
+    ai_context:
+      synonyms:
+      - days in a row
+      - רצף
+  - name: last_active_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: last_active_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: Last time the child finished something.
+  - name: created_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: created_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the profile was created.
+  metrics:
+  - name: children
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COUNT(id)
+    description: Number of child profiles.
+    datatype: Integer
+    ai_context:
+      synonyms:
+      - learners
+      - kids
+  - name: total_xp
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: SUM(xp)
+    description: All-time XP across the selected children.
+    datatype: Integer
+    ai_context:
+      synonyms:
+      - total points
+      - all-time XP
+  - name: avg_xp_per_child
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: AVG(xp)
+    description: Average running XP per child.
+    datatype: Decimal
+- name: ACTIVITY
+  source: english_star.main.activities
+  primary_key:
+  - id
+  description: A playable game or exercise. Built-in games (for example basics-abc, basics-blocks) register themselves
+    on first use.
+  fields:
+  - name: id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: id
+    datatype: String
+    description: Activity identifier, e.g. basics-colors.
+  - name: activity_type
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: activity_type
+    datatype: String
+    description: Family of activity, e.g. basics.
+  - name: skill
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: skill
+    datatype: String
+    description: 'Skill practised: letters, vocabulary, phrases, reading, sentences.'
+    ai_context:
+      synonyms:
+      - topic
+      - area
+      - נושא
+  - name: difficulty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: difficulty
+    datatype: Integer
+    description: Difficulty 1-5.
+  - name: title
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: title
+    datatype: String
+    description: Display title.
+  - name: enabled
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: enabled
+    datatype: Boolean
+    description: 1 when the activity can be played.
+- name: ACTIVITY_ATTEMPT
+  source: english_star.main.activity_attempts
+  primary_key:
+  - id
+  description: One finished round of a game by one child. XP is computed on the server from the score (score / 10),
+    never sent by the browser.
+  fields:
+  - name: id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: id
+    datatype: String
+    description: Attempt identifier.
+  - name: child_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: child_id
+    datatype: String
+    description: Child who played.
+  - name: activity_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: activity_id
+    datatype: String
+    description: Game that was played.
+  - name: score
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: score
+    datatype: Decimal
+    description: Score 0-100 for the round.
+  - name: xp_earned
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: xp_earned
+    datatype: Integer
+    description: XP awarded for the round (0-10).
+  - name: is_perfect
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: CASE WHEN score >= 100 THEN 1 ELSE 0 END
+    datatype: Boolean
+    description: Round finished with a score of 100.
+  - name: started_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: started_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the round started.
+  - name: completed_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: completed_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the round finished.
+  metrics:
+  - name: rounds_played
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COUNT(id)
+    description: Game rounds finished.
+    datatype: Integer
+    ai_context:
+      synonyms:
+      - games played
+      - rounds
+      - משחקים
+  - name: avg_round_score
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: AVG(score)
+    description: Average round score, 0-100.
+    datatype: Decimal
+    ai_context:
+      synonyms:
+      - average score
+      - game score
+  - name: perfect_round_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: AVG(CAST(is_perfect AS DECIMAL))
+    description: Share of rounds finished with a perfect score.
+    datatype: Decimal
+  - name: game_xp
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: SUM(xp_earned)
+    description: XP earned from games.
+    datatype: Integer
+- name: ASSIGNMENT
+  source: english_star.main.assignments
+  primary_key:
+  - id
+  description: 'A lesson assigned to a child: built from an uploaded school page, or a built-in school-work page.'
+  fields:
+  - name: id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: id
+    datatype: String
+    description: Lesson identifier.
+  - name: child_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: child_id
+    datatype: String
+    description: Child the lesson belongs to.
+  - name: source
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: source
+    datatype: String
+    description: Origin, e.g. ai-upload:<id> or legacy:<page>.
+  - name: is_ai_lesson
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: CASE WHEN source LIKE 'ai-upload:%' THEN 1 ELSE 0 END
+    datatype: Boolean
+    description: Lesson generated by AI from an uploaded school page.
+    ai_context:
+      synonyms:
+      - uploaded lesson
+      - school-page lesson
+  - name: status
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: status
+    datatype: String
+    description: active, or inactive when an administrator withdrew it.
+  - name: created_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: created_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the lesson was created.
+  metrics:
+  - name: lessons
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COUNT(id)
+    description: Lessons created.
+    datatype: Integer
+    ai_context:
+      synonyms:
+      - assignments
+      - שיעורים
+  - name: ai_lessons
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: SUM(is_ai_lesson)
+    description: Lessons generated from uploaded school pages.
+    datatype: Integer
+- name: ASSIGNMENT_COMPLETION
+  source: english_star.main.assignment_completions
+  primary_key:
+  - id
+  unique_keys:
+  - - child_id
+    - assignment_id
+  description: A child's best result on a lesson. One row per child and lesson; replaying keeps the best score and
+    never awards XP twice.
+  fields:
+  - name: id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: id
+    datatype: String
+    description: Completion identifier.
+  - name: child_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: child_id
+    datatype: String
+    description: Child.
+  - name: assignment_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: assignment_id
+    datatype: String
+    description: Lesson.
+  - name: score
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: score
+    datatype: Decimal
+    description: Best lesson score, 0-100.
+  - name: xp_earned
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: xp_earned
+    datatype: Integer
+    description: XP awarded on first completion.
+  - name: completed_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: completed_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the best score was reached.
+  metrics:
+  - name: lessons_completed
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COUNT(id)
+    description: Lessons finished at least once.
+    datatype: Integer
+    ai_context:
+      synonyms:
+      - finished lessons
+      - completed homework
+  - name: avg_lesson_score
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: AVG(score)
+    description: Average best lesson score, 0-100.
+    datatype: Decimal
+  - name: lesson_xp
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: SUM(xp_earned)
+    description: XP earned from lessons.
+    datatype: Integer
+- name: LEARNING_UPLOAD
+  source: english_star.main.learning_uploads
+  primary_key:
+  - id
+  description: A school page photographed by a parent. An AI judge first decides approve, reject or review; only
+    approved pages pay for lesson generation.
+  ai_context:
+    instructions: Photos are deleted after 14 days and are never part of this model. Costs are estimates from token
+      counts and published Workers AI prices.
+  fields:
+  - name: id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: id
+    datatype: String
+    description: Upload identifier.
+  - name: child_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: child_id
+    datatype: String
+    description: Child the page was uploaded for.
+  - name: assignment_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: assignment_id
+    datatype: String
+    description: Lesson created from the page, if any.
+  - name: status
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: status
+    datatype: String
+    description: pending_approval, processing, ready, rejected or failed.
+  - name: approval_status
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: approval_status
+    datatype: String
+    description: pending, approved or rejected.
+  - name: judge_decision
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: judge_decision
+    datatype: String
+    description: 'AI judge decision: approve, reject or review.'
+    ai_context:
+      synonyms:
+      - AI gate
+      - filter decision
+  - name: judge_confidence
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: judge_confidence
+    datatype: Decimal
+    description: Judge confidence, 0-1.
+  - name: judge_reason_code
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: judge_reason_code
+    datatype: String
+    description: Machine reason, e.g. not_learning_material.
+  - name: is_auto_decided
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: CASE WHEN judge_decision IN ('approve', 'reject') THEN 1 ELSE 0 END
+    datatype: Boolean
+    description: The judge approved or rejected without an administrator.
+  - name: total_tokens
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: total_tokens
+    datatype: Integer
+    description: Tokens used to generate the lesson.
+  - name: estimated_cost_usd
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: estimated_cost_usd
+    datatype: Decimal
+    description: Estimated lesson-generation cost in USD.
+  - name: judge_estimated_cost_usd
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: judge_estimated_cost_usd
+    datatype: Decimal
+    description: Estimated judge cost in USD.
+  - name: total_ai_cost_usd
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COALESCE(estimated_cost_usd, 0) + COALESCE(judge_estimated_cost_usd, 0)
+    datatype: Decimal
+    description: Judge plus generation cost for this upload.
+  - name: created_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: created_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the page was uploaded.
+  metrics:
+  - name: uploads
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COUNT(id)
+    description: School pages uploaded.
+    datatype: Integer
+    ai_context:
+      synonyms:
+      - photos uploaded
+      - worksheets
+  - name: auto_decision_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: AVG(CAST(is_auto_decided AS DECIMAL))
+    description: Share of uploads the judge decided without an administrator. Higher means less manual review.
+    datatype: Decimal
+    ai_context:
+      synonyms:
+      - automation rate
+      - judge coverage
+  - name: ai_cost_usd
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: SUM(total_ai_cost_usd)
+    description: Total estimated AI spend on uploads.
+    datatype: Decimal
+    ai_context:
+      synonyms:
+      - AI spend
+      - Workers AI cost
+  - name: ai_cost_per_ready_lesson_usd
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: SUM(total_ai_cost_usd) / NULLIF(SUM(CASE WHEN status = 'ready' THEN 1 ELSE 0 END), 0)
+    description: AI spend divided by lessons actually produced, including the cost of rejected and failed uploads.
+    datatype: Decimal
+    ai_context:
+      synonyms:
+      - cost per lesson
+      - unit cost
+- name: MASTERY
+  source: english_star.main.mastery
+  primary_key:
+  - child_id
+  - skill
+  - item_key
+  description: Spaced-repetition state per child and item (word, letter or sentence).
+  fields:
+  - name: child_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: child_id
+    datatype: String
+    description: Child.
+  - name: skill
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: skill
+    datatype: String
+    description: Skill the item belongs to.
+  - name: item_key
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: item_key
+    datatype: String
+    description: The word, letter or sentence.
+  - name: mastery_score
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: mastery_score
+    datatype: Decimal
+    description: 0-1 estimate of how well the item is known.
+  - name: correct_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: correct_count
+    datatype: Integer
+    description: Correct answers.
+  - name: wrong_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: wrong_count
+    datatype: Integer
+    description: Wrong answers.
+  - name: next_review_at
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: next_review_at
+    datatype: DateTime
+    dimension:
+      is_time: true
+    description: When the item should be practised again.
+  metrics:
+  - name: items_tracked
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: COUNT(item_key)
+    description: Items with a mastery record.
+    datatype: Integer
+  - name: avg_mastery
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: AVG(mastery_score)
+    description: Average mastery, 0-1.
+    datatype: Decimal
+    ai_context:
+      synonyms:
+      - how well they know it
+      - knowledge level
+  - name: answer_accuracy
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: CAST(SUM(correct_count) AS DECIMAL) / NULLIF(SUM(correct_count) + SUM(wrong_count), 0)
+    description: Correct answers as a share of all answers.
+    datatype: Decimal
+    ai_context:
+      synonyms:
+      - accuracy
+      - correct rate
+      - אחוז הצלחה
+relationships:
+- name: child_family
+  from: CHILD
+  to: FAMILY
+  from_columns:
+  - family_id
+  to_columns:
+  - id
+- name: attempt_child
+  from: ACTIVITY_ATTEMPT
+  to: CHILD
+  from_columns:
+  - child_id
+  to_columns:
+  - id
+- name: attempt_activity
+  from: ACTIVITY_ATTEMPT
+  to: ACTIVITY
+  from_columns:
+  - activity_id
+  to_columns:
+  - id
+- name: assignment_child
+  from: ASSIGNMENT
+  to: CHILD
+  from_columns:
+  - child_id
+  to_columns:
+  - id
+- name: completion_child
+  from: ASSIGNMENT_COMPLETION
+  to: CHILD
+  from_columns:
+  - child_id
+  to_columns:
+  - id
+- name: completion_assignment
+  from: ASSIGNMENT_COMPLETION
+  to: ASSIGNMENT
+  from_columns:
+  - assignment_id
+  to_columns:
+  - id
+- name: upload_child
+  from: LEARNING_UPLOAD
+  to: CHILD
+  from_columns:
+  - child_id
+  to_columns:
+  - id
+- name: upload_assignment
+  from: LEARNING_UPLOAD
+  to: ASSIGNMENT
+  from_columns:
+  - assignment_id
+  to_columns:
+  - id
+- name: mastery_child
+  from: MASTERY
+  to: CHILD
+  from_columns:
+  - child_id
+  to_columns:
+  - id
+metrics:
+- name: total_earned_xp
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(ACTIVITY_ATTEMPT.xp_earned) + SUM(ASSIGNMENT_COMPLETION.xp_earned)
+  description: XP earned from games plus lessons in a period. Unlike CHILD.xp, this can be filtered by time.
+  datatype: Integer
+  ai_context:
+    synonyms:
+    - XP this week
+    - points earned
+    instructions: Each SUM is a measure over its own dataset rows (Ossie measure semantics), so joining games to
+      lessons must not double-count.
+- name: active_learners
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: COUNT(DISTINCT ACTIVITY_ATTEMPT.child_id)
+  description: Children who finished at least one game round in the period.
+  datatype: Integer
+  ai_context:
+    synonyms:
+    - active kids
+    - weekly active learners
+- name: lesson_completion_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: CAST(COUNT(DISTINCT ASSIGNMENT_COMPLETION.assignment_id) AS DECIMAL) / NULLIF(COUNT(DISTINCT ASSIGNMENT.id),
+        0)
+  description: Share of assigned lessons finished at least once.
+  datatype: Decimal
+  ai_context:
+    synonyms:
+    - homework completion
+    - lesson completion
+- name: ai_cost_per_active_learner_usd
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(LEARNING_UPLOAD.estimated_cost_usd) / NULLIF(COUNT(DISTINCT ACTIVITY_ATTEMPT.child_id), 0)
+  description: Lesson-generation spend per child who actually played.
+  datatype: Decimal
+  ai_context:
+    synonyms:
+    - cost per learner
