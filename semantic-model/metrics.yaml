@@ -1,0 +1,153 @@
+# English Star metrics: every number the app reports, defined once.
+# Generated from english_star.semantic_model.yaml (Apache Ossie). Edit the model, not this file.
+
+families:
+  meaning: Number of family accounts.
+  synonyms:
+  - accounts
+  - parents
+  - households
+  from: FAMILY
+  formula: COUNT(id)
+children:
+  meaning: Number of child profiles.
+  synonyms:
+  - learners
+  - kids
+  from: CHILD
+  formula: COUNT(id)
+total_xp:
+  meaning: All-time XP across the selected children.
+  synonyms:
+  - total points
+  - all-time XP
+  from: CHILD
+  formula: SUM(xp)
+avg_xp_per_child:
+  meaning: Average running XP per child.
+  from: CHILD
+  formula: AVG(xp)
+rounds_played:
+  meaning: Game rounds finished.
+  synonyms:
+  - games played
+  - rounds
+  - משחקים
+  from: ACTIVITY_ATTEMPT
+  formula: COUNT(id)
+avg_round_score:
+  meaning: Average round score, 0-100.
+  synonyms:
+  - average score
+  - game score
+  from: ACTIVITY_ATTEMPT
+  formula: AVG(score)
+perfect_round_rate:
+  meaning: Share of rounds finished with a perfect score.
+  from: ACTIVITY_ATTEMPT
+  formula: AVG(CAST(is_perfect AS DECIMAL))
+game_xp:
+  meaning: XP earned from games.
+  from: ACTIVITY_ATTEMPT
+  formula: SUM(xp_earned)
+lessons:
+  meaning: Lessons created.
+  synonyms:
+  - assignments
+  - שיעורים
+  from: ASSIGNMENT
+  formula: COUNT(id)
+ai_lessons:
+  meaning: Lessons generated from uploaded school pages.
+  from: ASSIGNMENT
+  formula: SUM(is_ai_lesson)
+lessons_completed:
+  meaning: Lessons finished at least once.
+  synonyms:
+  - finished lessons
+  - completed homework
+  from: ASSIGNMENT_COMPLETION
+  formula: COUNT(id)
+avg_lesson_score:
+  meaning: Average best lesson score, 0-100.
+  from: ASSIGNMENT_COMPLETION
+  formula: AVG(score)
+lesson_xp:
+  meaning: XP earned from lessons.
+  from: ASSIGNMENT_COMPLETION
+  formula: SUM(xp_earned)
+uploads:
+  meaning: School pages uploaded.
+  synonyms:
+  - photos uploaded
+  - worksheets
+  from: LEARNING_UPLOAD
+  formula: COUNT(id)
+auto_decision_rate:
+  meaning: Share of uploads the judge decided without an administrator. Higher means less manual review.
+  synonyms:
+  - automation rate
+  - judge coverage
+  from: LEARNING_UPLOAD
+  formula: AVG(CAST(is_auto_decided AS DECIMAL))
+ai_cost_usd:
+  meaning: Total estimated AI spend on uploads.
+  synonyms:
+  - AI spend
+  - Workers AI cost
+  from: LEARNING_UPLOAD
+  formula: SUM(total_ai_cost_usd)
+ai_cost_per_ready_lesson_usd:
+  meaning: AI spend divided by lessons actually produced, including the cost of rejected and failed uploads.
+  synonyms:
+  - cost per lesson
+  - unit cost
+  from: LEARNING_UPLOAD
+  formula: SUM(total_ai_cost_usd) / NULLIF(SUM(CASE WHEN status = 'ready' THEN 1 ELSE 0 END), 0)
+items_tracked:
+  meaning: Items with a mastery record.
+  from: MASTERY
+  formula: COUNT(item_key)
+avg_mastery:
+  meaning: Average mastery, 0-1.
+  synonyms:
+  - how well they know it
+  - knowledge level
+  from: MASTERY
+  formula: AVG(mastery_score)
+answer_accuracy:
+  meaning: Correct answers as a share of all answers.
+  synonyms:
+  - accuracy
+  - correct rate
+  - אחוז הצלחה
+  from: MASTERY
+  formula: CAST(SUM(correct_count) AS DECIMAL) / NULLIF(SUM(correct_count) + SUM(wrong_count), 0)
+total_earned_xp:
+  meaning: XP earned from games plus lessons in a period. Unlike CHILD.xp, this can be filtered by time.
+  synonyms:
+  - XP this week
+  - points earned
+  from: cross-dataset
+  formula: SUM(ACTIVITY_ATTEMPT.xp_earned) + SUM(ASSIGNMENT_COMPLETION.xp_earned)
+active_learners:
+  meaning: Children who finished at least one game round in the period.
+  synonyms:
+  - active kids
+  - weekly active learners
+  from: cross-dataset
+  formula: COUNT(DISTINCT ACTIVITY_ATTEMPT.child_id)
+lesson_completion_rate:
+  meaning: Share of assigned lessons finished at least once.
+  synonyms:
+  - homework completion
+  - lesson completion
+  from: cross-dataset
+  formula: CAST(COUNT(DISTINCT ASSIGNMENT_COMPLETION.assignment_id) AS DECIMAL) / NULLIF(COUNT(DISTINCT ASSIGNMENT.id),
+    0)
+ai_cost_per_active_learner_usd:
+  meaning: Lesson-generation spend per child who actually played.
+  synonyms:
+  - cost per learner
+  from: cross-dataset
+  formula: SUM(LEARNING_UPLOAD.estimated_cost_usd) / NULLIF(COUNT(DISTINCT ACTIVITY_ATTEMPT.child_id), 0)
