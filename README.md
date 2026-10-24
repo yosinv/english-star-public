@@ -85,11 +85,10 @@ Every number the app reports, from XP to AI cost per lesson, is defined once in 
 
 **How to read it:** a *dataset* names a real table, *fields* are its columns, a *metric* is a formula written once, `ai_context` holds the words people actually use (so an AI agent asked in Hebrew for the "success rate" finds `answer_accuracy`), and *relationships* say how tables join.
 
-**Run the checks yourself** (needs `pyyaml`; [`schema.sql`](semantic-model/schema.sql) is the structure of the 8 tables, no data):
+**Run the checks yourself** with [uv](https://docs.astral.sh/uv/) ([`schema.sql`](semantic-model/schema.sql) is the structure of the 8 tables, no data):
 
 ```bash
-pip install pyyaml
-python semantic-model/check_against_db.py semantic-model/english_star.semantic_model.yaml semantic-model
+uv run --with pyyaml semantic-model/check_against_db.py semantic-model/english_star.semantic_model.yaml semantic-model
 ```
 
 Writing the checks caught real mistakes before anything shipped:
