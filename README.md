@@ -81,6 +81,17 @@ Every number the app reports, from XP to AI cost per lesson, is defined once in 
   - **[`check_against_db.py`](semantic-model/check_against_db.py)** runs every metric against SQLite built from the app's real migrations and compares 14 results with hand-computed values.
   - It fails if one synonym points to two different numbers.
 
+<img src="assets/ossie-explained.png" width="600" alt="One metric, answer_accuracy, annotated: dataset, field, metric formula, AI synonyms in English and Hebrew, and a relationship">
+
+**How to read it:** a *dataset* names a real table, *fields* are its columns, a *metric* is a formula written once, `ai_context` holds the words people actually use (so an AI agent asked "מה אחוז ההצלחה?" finds `answer_accuracy`), and *relationships* say how tables join.
+
+**Run the checks yourself** (needs `pyyaml`; [`schema.sql`](semantic-model/schema.sql) is the structure of the 8 tables, no data):
+
+```bash
+pip install pyyaml
+python semantic-model/check_against_db.py semantic-model/english_star.semantic_model.yaml semantic-model
+```
+
 Writing the checks caught real mistakes before anything shipped:
 - Two rates that came out as 0 because SQLite divides whole numbers without a fraction.
 - "accuracy" used as a synonym for two different metrics.
