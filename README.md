@@ -83,7 +83,7 @@ Every number the app reports, from XP to AI cost per lesson, is defined once in 
 
 <img src="assets/ossie-explained.png" width="600" alt="One metric, answer_accuracy, annotated: dataset, field, metric formula, AI synonyms in English and Hebrew, and a relationship">
 
-**How to read it:** a *dataset* names a real table, *fields* are its columns, a *metric* is a formula written once, `ai_context` holds the words people actually use (so an AI agent asked "מה אחוז ההצלחה?" finds `answer_accuracy`), and *relationships* say how tables join.
+**How to read it:** a *dataset* names a real table, *fields* are its columns, a *metric* is a formula written once, `ai_context` holds the words people actually use (so an AI agent asked in Hebrew for the "success rate" finds `answer_accuracy`), and *relationships* say how tables join.
 
 **Run the checks yourself** (needs `pyyaml`; [`schema.sql`](semantic-model/schema.sql) is the structure of the 8 tables, no data):
 
@@ -95,7 +95,8 @@ python semantic-model/check_against_db.py semantic-model/english_star.semantic_m
 Writing the checks caught real mistakes before anything shipped:
 - Two rates that came out as 0 because SQLite divides whole numbers without a fraction.
 - "accuracy" used as a synonym for two different metrics.
-- A cross-dataset XP total that double-counted under a naive join. The checker now evaluates each measure over its own rows, as Ossie's measure semantics require.
+
+And one in my own checker, not the model: a cross-dataset XP total double-counted under a naive join. The checker now evaluates each measure over its own rows, as Ossie's measure semantics require.
 
 <sub>Structure only, no data. Children's names, login IDs, file keys and photo hashes are deliberately not in the model. The spec is pre-1.0 (`0.2.0.dev0`), so the model will follow its changes.</sub>
 
