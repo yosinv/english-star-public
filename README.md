@@ -23,7 +23,7 @@
 | Files | Cloudflare R2, private bucket, never publicly addressable |
 | AI | Cloudflare Workers AI (Gemma 4, `gemma-4-26b-a4b-it`) for reading photos, judging and lesson generation |
 | Auth | Clerk sign-in (email code or password) for families; a parent PIN guards parent actions; kid phones connect with a one-time code |
-| Voices | Free recorded voices (open-source Kokoro), made once and served as files; no paid voice |
+| Voices | Free recorded voices (open-source Kokoro), made once and served as files; paid voice off by default |
 | Deploy | Push to `main` → Cloudflare build → deploy |
 
 ## The upload pipeline
@@ -43,12 +43,18 @@ photo / PDF
 
 ### AI judge with a human in the loop
 
+<p>
+  <img src="assets/upload-to-lesson.png" width="260" alt="Uploading a worksheet and getting a lesson">
+  <img src="assets/ai-judge-queue.png" width="260" alt="Admin queue with AI judge decisions">
+</p>
+<sub>Upload a worksheet and get a lesson; the admin queue of AI judge decisions.</sub>
+
 Before spending the larger generation budget, a cheap model call decides whether an upload is real learning material.
 
 - **Asymmetric thresholds:** auto-approve needs ≥ 80% confidence, auto-reject needs ≥ 95%. Anything in between goes to an admin queue, so a wrong rejection is rarer than a wrong approval.
 - **A fixed rule after the model:** if the judge's own labels say an upload is not school material (a photo of a room, a ceiling, a screen), code rejects it even when the model hedged with "review". Admins must preview a photo before approving it, and any approval can be undone, which also corrects the judge's memory.
 - **It learns from corrections:** when the admin overrides or confirms a decision, the case is stored as trusted memory and fed back into the judge's prompt as examples. The latest correction for an upload replaces earlier ones.
-- **The admin hears about it:** when an upload lands in the review queue, the admin gets a short email (no child names or pictures in it; the details stay on the admin page).
+- **The admin hears about it:** when an upload lands in the review queue, the admin can get a short email (no child names or pictures in it; the details stay on the admin page).
 - **Untrusted input is treated as data:** text extracted from a photo is wrapped and marked as untrusted, and a judge that flags prompt injection is forced to "review" regardless of its confidence.
 
 <p>
