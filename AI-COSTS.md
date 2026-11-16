@@ -48,7 +48,7 @@ These are hard ceilings in code. Environment variables and the admin settings pa
 
 - **Reading the photo (`toMarkdown`).** Cloudflare doesn't publish a price for this conversion step. It probably consumes neurons too, which is what could push heavy days over the free 10,000.
 - **What happens above the free allowance depends on the plan.** On the Workers Free plan nothing is billed: AI calls fail until 00:00 UTC, and uploads fall back to the admin review queue. On the Workers Paid plan the overage is billed at the rate above.
-- **Fixed audio clips (OpenAI text-to-speech).** About 40 short clips are generated once and then served from storage. The one-time cost is likely a few cents.
+- **Voices cost nothing.** The games use free recordings made once with the open-source Kokoro voice and served as files, plus the device's own voice. A paid voice is off by default.
 
 ## Sources
 
